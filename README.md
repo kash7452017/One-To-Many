@@ -67,4 +67,119 @@ public class Course {
 
 }
 ```
+**在Instructor類別中反映射Course類別中的instructor屬性所對應的instructor_id以找到課程項目**
+```
+@OneToMany(mappedBy="instructor",
+				cascade= {CascadeType.PERSIST, CascadeType.MERGE,
+							CascadeType.DETACH, CascadeType.REFRESH})
+	private List<Course> courses;
+```
+**由於雙向關係，透過此便捷方法加入新課程**
+```
+// add convenience methods for bi-directional relationship
+	public void add(Course tempCourse)
+	{
+		if (courses == null) courses = new ArrayList<>();
+		
+		courses.add(tempCourse);
+		tempCourse.setInstructor(this);
+	}
+```
+**以下例子為示範創建新課程並加入到Instructor講師數據中**
+```
+public class CreateCoursesDemo {
 
+	public static void main(String[] args) {
+		
+		// create session factory
+		SessionFactory factory = new Configuration()
+				.configure("hibernate.cfg.xml")
+				.addAnnotatedClass(Instructor.class)
+				.addAnnotatedClass(InstructorDetail.class)
+				.addAnnotatedClass(Course.class)
+				.buildSessionFactory();
+		
+		// create session
+		Session session = factory.getCurrentSession();
+		
+		try {  											
+            // start transaction
+            session.beginTransaction();
+            
+            // get the instructor from db
+            int theId = 1;
+            Instructor tempInstructor = session.get(Instructor.class, theId);
+            
+            // create some courses
+            Course tempCourse1 = new Course("Air Guitar - The Ultimate Guide");
+            Course tempCourse2 = new Course("The Pinball Masterclass");
+            
+            // add courses to instructor
+            tempInstructor.add(tempCourse1);
+            tempInstructor.add(tempCourse2);
+            
+            // save the courses 
+            session.save(tempCourse1);
+            session.save(tempCourse2);
+
+            // commit transaction
+            session.getTransaction().commit();
+ 
+            System.out.println("Done!");
+            
+        } catch (Exception exc) {
+            exc.printStackTrace();
+        } finally {
+        	
+        	// add clean up code
+        	session.close();
+        	
+            factory.close();
+        }
+	}
+}
+```
+**以下示例為示範刪除課程，由於級聯關係不包含刪除動作，因此當刪除課程時並不會一同刪除講師資訊**
+```
+public static void main(String[] args) {
+		
+		// create session factory
+		SessionFactory factory = new Configuration()
+				.configure("hibernate.cfg.xml")
+				.addAnnotatedClass(Instructor.class)
+				.addAnnotatedClass(InstructorDetail.class)
+				.addAnnotatedClass(Course.class)
+				.buildSessionFactory();
+		
+		// create session
+		Session session = factory.getCurrentSession();
+		
+		try {  											
+            // start transaction
+            session.beginTransaction();
+            
+            // get a course
+            int theId = 12;
+            Course tempCourse = session.get(Course.class, theId);
+            
+            // delete course
+            System.out.println("Deleting course: " + tempCourse);
+            session.delete(tempCourse);
+
+            // commit transaction
+            session.getTransaction().commit();
+ 
+            System.out.println("Done!");
+            
+        } catch (Exception exc) {
+            exc.printStackTrace();
+        } finally {
+        	
+        	// add clean up code
+        	session.close();
+        	
+            factory.close();
+        }
+	}
+}
+```
